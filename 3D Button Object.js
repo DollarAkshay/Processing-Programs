@@ -219,11 +219,26 @@ var mouseMoved = function(){
         else if(comp.shape==="ellipse" && checkPointinEllip(mouseX, mouseY, comp.x, comp.y, comp.width, comp.height)){
             comp.isPressed = true;
         }
-        else{
+        else if(comp.isPressed){
             comp.isPressed = false;
+            playSound(getSound("rpg/hit-clop"));
         }
     }
 };
+
+var mousePressed = function(){
+    
+    for(var i = components.length-1; i>=0; i--){
+        var comp = components[i];
+        if(comp.shape==="rectangle" && checkPointinRect(mouseX, mouseY, comp.x, comp.y, comp.width, comp.height)){
+            playSound(getSound("retro/jump2"));
+        }
+        else if(comp.shape==="ellipse" && checkPointinEllip(mouseX, mouseY, comp.x, comp.y, comp.width, comp.height)){
+            playSound(getSound("retro/jump2"));
+        }
+    }
+};
+
 
 var main = function(){
     
