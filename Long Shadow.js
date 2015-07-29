@@ -2,7 +2,7 @@
 var components = [];
 var max3DXoffset, max3DYoffset, maxOffset;
 var screen, backgroundColor, cursorMode;
-var shapePoints;
+var poly, shapeComplete;
 
 var initilization = function(){
     noCursor();
@@ -12,8 +12,8 @@ var initilization = function(){
     textAlign(CENTER,CENTER);
     backgroundColor = color(27, 207, 126);
     screen = 0;
-    shapePoints = [];
     cursorMode = "default";
+    shapeComplete = false;
 };
 
 var Button = function(x, y, width, height, optional){
@@ -66,8 +66,8 @@ var Button = function(x, y, width, height, optional){
         this.Yoffset = 0;
     }
     else{
-        this.Xoffset = max3DXoffset;
-        this.Yoffset = max3DYoffset;
+        this.Xoffset = 0;
+        this.Yoffset = 0;
     }
     
 };
@@ -221,8 +221,7 @@ var Shape = function( shape, x, y, width, height, optional){
     
     this.bgColor = optional.bgColor || color(255, 208, 0);
     this.isVisible = optional.isVisible || true;
-    this.xPoints = optional.xPoints || [];
-    this.yPoints = optional.yPoints || [];
+    this.points = optional.points || [];
     this.strokeColor = optional.strokeColor || color(0, 0, 0);
     
     if(typeof optional.roundness !== "undefined"){
@@ -255,9 +254,10 @@ Shape.prototype.draw = function() {
         ellipse( this.x, this.y, this.width, this.height);
     }
     else if (this.shape === "polygon"){
+        //println(this.xPoints.length);
         beginShape();
-        for(var i = 0; i<this.xPoints.length; i++){
-            vertex(this.xPoints[i],this.yPoints[i]);
+        for(var i = 0; i<this.points.length; i++){
+            vertex(this.points[i].x,this.points[i].y);
         }
         endShape();
     }
@@ -265,7 +265,7 @@ Shape.prototype.draw = function() {
         rect( this.x, this.y, this.width, this.height, this.roundness);
     }
     else if(this.shape === "triangle"){
-        triangle(this.xPoints[0], this.yPoints[0], this.xPoints[1], this.yPoints[1], this.xPoints[2], this.yPoints[2]);
+        triangle(this.points[0].x, this.points[0].y, this.points[1].x, this.points[1].y, this.points[2].x, this.points[2].y);
     }
     else if(this.shape === "line"){
         line( this.x, this.y, this.x+this.width, this.y+this.height);
@@ -286,6 +286,16 @@ var removeComponent = function(comp){
     for(var i = 0; i<components.length; i++){
         if(components[i].type === comp.type && components[i].ID === comp.ID){
             components.splice(i,1);
+        }
+    }
+    
+};
+
+var getComponent = function(type, id){
+    
+    for(var i = 0; i<components.length; i++){
+        if(components[i].type === type && components[i].ID === id){
+            return components[i];
         }
     }
     
@@ -319,7 +329,7 @@ var checkCollision = function(px, py, comp){
 };
 
 var mouseMoved = function(){
-    
+   
     for(var i = components.length-1; i>=0; i--){
         var comp = components[i];
         if(comp.type === "button"){
@@ -332,14 +342,20 @@ var mouseMoved = function(){
             else if(comp.isPressed){
                 comp.isPressed = false;
             }
+            
         }
         else if(comp.type === "shape"){
             if(checkCollision(mouseX, mouseY, comp)){
-                if(comp.ID === 1 && cursorMode === "copy"){
-                    var prevPoint = shapePoints[shapePoints.length-1];
-                    line(prevPoint.x,prevPoint.y,mouseX,mouseY);
-                    fill(0, 0, 0);
-                    
+                
+                if(comp.ID === 0 && cursorMode === "copy"){
+                    var line = getComponent("shape",2);
+                    if(poly.xPoints.length >= 1){
+                        line.x = poly[poly.length-1].x;
+                        line.y = poly[poly.length-1].y;
+                        line.width = mouseX - line.x;
+                        line.height = mouseY -line.y;
+                        
+                    }
                 }
             }
         }
@@ -350,14 +366,13 @@ var mouseMoved = function(){
 };
 
 var mousePressed = function(){
-    
     for(var i = components.length-1; i>=0; i--){
         var comp = components[i];
         if(comp.type === "button"){
             if(checkCollision(mouseX, mouseY, comp)){
                 playSound(getSound("rpg/hit-thud"));
                 
-                if(comp.label === "Create\nNew"){
+                if(comp.ID === 0){
                     screen = 1;
                 }
                 else if(comp.ID === 2){
@@ -366,16 +381,29 @@ var mousePressed = function(){
                 else if(comp.ID === 3){
                     cursorMode = "not-allowed";
                 }
-                println(comp.ID+"th "+comp.type+" pressed");
+                else if(comp.ID === 4 && comp.is3D){
+                    screen = 2;
+                }
+                else if(comp.ID === 5 && poly.length>2){
+                    poly.push({x: poly[0].x, y: poly[0].y});
+                    shapeComplete = true;
+                    var done = getComponent("button", 4);
+                    removeComponent(getComponent("button", 2));
+                    removeComponent(getComponent("button", 3));
+                    done.is3D = true;
+                    done.bgColor = color(0, 213, 255);
+                    cursorMode = "default";
+                }
+                //println(comp.ID+"th "+comp.type+" pressed");
             }
         }
         else if(comp.type === "label"){
             if(checkCollision(mouseX, mouseY, comp)){
-                println(comp.ID+"th "+comp.type+" pressed");
+                //println(comp.ID+"th "+comp.type+" pressed");
                 if(comp.ID === 1){
                     removeComponent(comp);
                     for(var i = 0; i<components.length; i++){
-                        if(components[i].type === "shape" && components[i].ID === 0){
+                        if(components[i].type === "shape" && components[i].ID === 3){
                             removeComponent(components[i]);
                             break;
                         }
@@ -385,12 +413,12 @@ var mousePressed = function(){
         }
         else if(comp.type === "shape"){
             if(checkCollision(mouseX, mouseY, comp)){
-                println(comp.ID+"th "+comp.type+" pressed");
-                if(comp.ID === 1 && cursorMode === "copy"){
-                    var point = new Button( mouseX, mouseY, 10, 10, {shape: "ellipse",bgColor: color(135, 135, 135)});
+                //println(comp.ID+"th "+comp.type+" pressed");
+                if(comp.ID === 0 && cursorMode === "copy" && !shapeComplete){
+                    var point = new Button( mouseX, mouseY, 20, 20, {shape: "ellipse",bgColor: color(135, 135, 135)});
                     addComponent(point);
-                    shapePoints.push({x: mouseX, y: mouseY});
-                    println("No of points = "+shapePoints.length);
+                    //println("Point with ID "+point.ID+" added.");
+                    poly.push({x: mouseX, y: mouseY});
                 }
             }
         }
@@ -419,17 +447,56 @@ var Create_Screen = function(){
     
     var info = new Label( 75,100,"Use your mouse to create new points and draw a polygon.\n(click to dismiss)",{textSize: 16, 
                          textFont: "Trebuchet MS", bgColor: color(110, 255, 173), isTransparent: false, width: 250, height: 100});
-    var cover = new Shape("rectangle", 0, 0, 400, 400, {bgColor: color(0, 0, 0,150), roundness: 0});
+    
     var addPoint = new Button( 100, 10, 30, 30, {shape: "rectangle",is3D: true,label: "P+"});
     var removePoint = new Button( 300, 10, 30, 30, {shape: "rectangle",is3D: true,label: "P-"});
+    var done = new Button( 310, 350, 80, 40, {shape: "rectangle",label: "DONE", bgColor: color(186, 186, 186)});
+    
     var boundingCircle = new Shape("ellipse", 200, 225, 250, 250, {bgColor: color(255, 255, 255)});
+    var design = new Shape("polygon", 0, 0, 0, 0, {bgColor: color(222, 222, 222),hasStroke: true, points: []});
+    var ghostLine = new Shape("line", 0, 0, 0, 0, {hasStroke: true});
+    var cover = new Shape("rectangle", 0, 0, 400, 400, {bgColor: color(0, 0, 0,150), roundness: 0});
     
     addComponent(addPoint);
     addComponent(removePoint);
+    addComponent(done);
+    
     addComponent(boundingCircle);
+    addComponent(design);
+    addComponent(ghostLine);
     addComponent(cover);
     addComponent(info);
+    poly = design.points;
     
+};
+
+var Shadow_Screen = function(){
+    
+    backgroundColor = color(240, 240, 240);
+    components = [];
+    
+    var info = new Label( 75,100,"Congrats you have created your shape. Now set the angle for the shadow.",{textSize: 16, 
+                         textFont: "Trebuchet MS", bgColor: color(110, 255, 173), isTransparent: false, width: 250, height: 100});
+    
+    var addPoint = new Button( 100, 10, 30, 30, {shape: "rectangle",is3D: true,label: "P+"});
+    var removePoint = new Button( 300, 10, 30, 30, {shape: "rectangle",is3D: true,label: "P-"});
+    var done = new Button( 310, 350, 80, 40, {shape: "rectangle",label: "DONE", bgColor: color(186, 186, 186)});
+    
+    var boundingCircle = new Shape("ellipse", 200, 225, 250, 250, {bgColor: color(255, 255, 255)});
+    var design = new Shape("polygon", 0, 0, 0, 0, {bgColor: color(222, 222, 222),hasStroke: true, points: []});
+    var ghostLine = new Shape("line", 0, 0, 0, 0, {hasStroke: true});
+    var cover = new Shape("rectangle", 0, 0, 400, 400, {bgColor: color(0, 0, 0,150), roundness: 0});
+    
+    addComponent(addPoint);
+    addComponent(removePoint);
+    addComponent(done);
+    
+    addComponent(boundingCircle);
+    addComponent(design);
+    addComponent(ghostLine);
+    addComponent(cover);
+    addComponent(info);
+    poly = design.points;
     
 };
 
@@ -441,6 +508,10 @@ var main = function(){
     }
     else if(screen === 1){
         Create_Screen();
+        screen = -1;
+    }
+    else if(screen === 2){
+        Shadow_Screen();
         screen = -1;
     }
     drawComponents();
