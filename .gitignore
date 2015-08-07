@@ -2,3 +2,5 @@
 /libraries
 /modes
 /tools
+*.ini
+*.ico
