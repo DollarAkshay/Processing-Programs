@@ -88,7 +88,7 @@ var draw = function() {
 	}
 	if(len===2){
 		textSize(15);
-		text(" Cant go further                    Vote Up", 150,385);
+		text(" Cant go further", 150,385);
 	}
 	textSize(30);
 	text("LEVEL : "+level, 130,70);
