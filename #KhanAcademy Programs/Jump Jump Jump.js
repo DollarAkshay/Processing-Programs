@@ -2,6 +2,7 @@
 var x=175,y=300,scene=0;
 var xspeed = 0, yspeed = -0.4;
 var xacc=0.5, yacc=0;
+var grav = 1;
 var char = getImage("avatars/orange-juice-squid");
 var wood = getImage("cute/WallBlock");
 var spot = getImage("cute/Selector");
@@ -10,6 +11,17 @@ var bg = getImage("space/background");
 noStroke();
 
 var keys = [];
+var top=[], bot=[];
+
+var checkCollision = function(px, py, cx,cy,cwidth,cheight){
+    
+    if (px>=cx && px<=cx+cwidth && py>=cy && py<=cy+cheight){
+        return true;
+    }
+    else{
+        return false;
+    }
+};
 
 var draw = function() {
     if(scene===0){
@@ -79,7 +91,37 @@ var draw = function() {
         }
         
     }
+    else if(scene===1){
+        background(0, 184, 184);
+        image(bg,0,0,400,400);
+        for(var i=0;i<50;i++){
+            top.push(1);
+            bot.push(1);
+        }
+        for(var i=0;i<400;i+=50){
+            if(top[i]===1){
+                
+                image(wood,i,330,50,70);
+            }
+            if(bot[i]===1){
+                image(wood,i,300,50,70);
+            }
+        }
+        
+    }
 };
+
+var mousePressed = function(){
+    
+  if(checkCollision(mouseX,mouseY,70,200,120,60)){
+        scene=1;
+        xspeed = 4;
+  }
+  if(checkCollision(mouseX,mouseY,230,200,120,60)){
+        println("Help Docs Coming Soon...");
+  }
+};
+
 
 var keyPressed = function() { 
   keys[keyCode] = true;
